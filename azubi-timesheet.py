@@ -106,7 +106,13 @@ def parse_cli(args = None):
     :return: parsed CLI result
     :rtype: :class:`argparse.Namespace`
     """
-    parser = argparse.ArgumentParser(description = __doc__)
+    parser=argparse.ArgumentParser(description=__doc__,
+                                     prog="azubi-timesheet",
+                                     add_help=False)
+    parser.add_argument('-v', '--version',
+                        action='version',
+                        version="%(prog)s 0.1",
+                        )
     parser.add_argument("-n", "--non-interactive",
                         action='store_true',
                         dest = "non_interactive",
@@ -127,6 +133,10 @@ def parse_cli(args = None):
     parser.add_argument("-c", "--comment",
                         dest = "comment",
                         help = "comment of record, if needed",
+    parser.add_argument("-h", "--help",
+                        action="help",
+                        default=argparse.SUPPRESS,
+                        help="Show this help message and exit.",
                         )
     args = parser.parse_args(args)
     args.parser = parser
