@@ -6,12 +6,13 @@
 Keep track of your work hours. Add, edit, delete records.
 Export and print at the end of the month!
 """
+
 import sys
 import re # used for regular expressions
 import argparse # used to parse command line arguments
 import datetime # used to save date and time objects
 
-def check_date(date, non_interactive, message, attempts = 3):
+def check_date(date, non_interactive, message, attempts=3):
     """Check that date respects format 'DD.MM.YYYY'.
 
     :param str date: The date supplied from the command line
@@ -22,27 +23,27 @@ def check_date(date, non_interactive, message, attempts = 3):
     :rtype: datetime.date
     """
     # Example of match dict: {'day': '3', 'month': '10', 'year': '2019'}
-    regex = r'(?P<day>[0-9]{1,2})([\.,-])(?P<month>[0-9]{1,2})([\.,-])(?P<year>[0-9]{4})'
+    regex=r'(?P<day>[0-9]{1,2})([\.,-])(?P<month>[0-9]{1,2})([\.,-])(?P<year>[0-9]{4})'
     if non_interactive:
-        attempts = 1
+        attempts=1
     while attempts:
         if not date and not non_interactive:
-            date = input(message)
-        match = re.match(regex, date)
+            date=input(message)
+        match=re.match(regex, date)
         if match:
-            year = int(match.group("year"))
-            month = int(match.group("month"))
-            day = int(match.group("day"))
-            date = datetime.date(year, month, day)
+            year=int(match.group("year"))
+            month=int(match.group("month"))
+            day=int(match.group("day"))
+            date=datetime.date(year, month, day)
             return date
         else:
-            attempts -= 1
-            date = ""
+            attempts-=1
+            date=""
             print("Expected date of following format: 'DD.MM.YYYY'")
     print("Exiting. You entered invalid date or didn't enter any input.")
     sys.exit(1)
 
-def check_time_interval(time_interval, non_interactive, name = "", attempts = 3):
+def check_time_interval(time_interval, non_interactive, name="", attempts=3):
     """Check that time interval respects format 'HH:MM-HH:MM'.
 
     :param str time_interval: The time interval supplied from the command line
@@ -57,27 +58,27 @@ def check_time_interval(time_interval, non_interactive, name = "", attempts = 3)
     # Note: start_hour:start_minute take values from 00:00-23:59
     # whereas end_hour:end_minute    only    from    10:00-23:59
     # Can't decide if it's a bug or a feature...
-    regex = r'(?P<start_hour>[0-9]|0[0-9]|1[0-9]|2[0-3])(:)' \
-            '(?P<start_minute>[0-5][0-9])?([\-])' \
-            '(?P<end_hour>1[0-9]|2[0-3])(:)' \
-            '(?P<end_minute>[0-5][0-9])'
+    regex=r'(?P<start_hour>[0-9]|0[0-9]|1[0-9]|2[0-3])(:)' \
+           '(?P<start_minute>[0-5][0-9])?([\-])' \
+           '(?P<end_hour>1[0-9]|2[0-3])(:)' \
+           '(?P<end_minute>[0-5][0-9])'
     if non_interactive:
-        attempts = 1
+        attempts=1
     while attempts:
         if not time_interval and not non_interactive:
-            time_interval = input("- Enter the BEGIN and END {}: ".format(name))
-        match = re.match(regex, time_interval)
+            time_interval=input("- Enter the BEGIN and END {}: ".format(name))
+        match=re.match(regex, time_interval)
         if match:
-            start_hour = int(match.group("start_hour"))
-            start_minute = int(match.group("start_minute"))
-            end_hour = int(match.group("end_hour"))
-            end_minute = int(match.group("end_minute"))
-            start_time = datetime.time(start_hour, start_minute)
-            end_time = datetime.time(end_hour, end_minute)
+            start_hour=int(match.group("start_hour"))
+            start_minute=int(match.group("start_minute"))
+            end_hour=int(match.group("end_hour"))
+            end_minute=int(match.group("end_minute"))
+            start_time=datetime.time(start_hour, start_minute)
+            end_time=datetime.time(end_hour, end_minute)
             return start_time, end_time
         else:
-            attempts -= 1
-            time_interval = ""
+            attempts-=1
+            time_interval=""
             print("Expected {} of following format: 'HH:MM-HH:MM'".format(name))
     print("Exiting. You entered invalid {} or didn't enter any input.".format(name))
     sys.exit(1)
@@ -89,17 +90,17 @@ def check_args(args):
     :type args: :class:`argparse.Namespace`
     """
     # checking date
-    date_message = "- Enter the DATE of record: "
-    args.date = check_date(args.date, args.non_interactive, date_message)
+    date_message="- Enter the DATE of record: "
+    args.date=check_date(args.date, args.non_interactive, date_message)
     # checking work hours
-    args.work_hours = check_time_interval(args.work_hours, args.non_interactive, "WORK HOURS")
+    args.work_hours=check_time_interval(args.work_hours, args.non_interactive, "WORK HOURS")
     # checking break
-    args.break_time = check_time_interval(args.break_time, args.non_interactive, "BREAK TIME")
+    args.break_time=check_time_interval(args.break_time, args.non_interactive, "BREAK TIME")
     # checking comment
     if not args.comment and not args.non_interactive:
-        args.comment = input("- Enter the COMMENT of record, if needed: ")
+        args.comment=input("- Enter the COMMENT of record, if needed: ")
 
-def parse_cli(args = None):
+def parse_cli(args=None):
     """Parse CLI with :class:`argparse.ArgumentParser` and return parsed result.
 
     :param list cliargs: Arguments to parse or None (=use sys.argv)
@@ -115,31 +116,39 @@ def parse_cli(args = None):
                         )
     parser.add_argument("-n", "--non-interactive",
                         action='store_true',
-                        dest = "non_interactive",
-                        help = "Do not ask anything, use default answers automatically.",
+                        dest="non_interactive",
+                        help="Do not ask anything, use default answers automatically.",
                         )
     parser.add_argument("-d", "--date",
-                        dest = "date",
-                        help = "date of record in format 'DD.MM.YYYY'",
+                        dest="date",
+                        metavar="DD.MM.YYYY",
+                        default="",
+                        help="Date of the record.",
                         )
     parser.add_argument("-w", "--work-hours",
-                        dest = "work_hours",
-                        help = "begin and end of work day in format 'HH:MM-HH:MM'",
+                        dest="work_hours",
+                        metavar="HH:MM-HH:MM",
+                        default="",
+                        help="Begin and end time of the work day.",
                         )
     parser.add_argument("-b", "--break-time",
-                        dest = "break_time",
-                        help = "begin and end of break in format 'HH:MM-HH:MM'",
+                        dest="break_time",
+                        metavar="HH:MM-HH:MM",
+                        default="",
+                        help="Begin and end time of the break.",
                         )
     parser.add_argument("-c", "--comment",
-                        dest = "comment",
-                        help = "comment of record, if needed",
+                        dest="comment",
+                        default="",
+                        help="Comment of the record, if needed.",
+                        )
     parser.add_argument("-h", "--help",
                         action="help",
                         default=argparse.SUPPRESS,
                         help="Show this help message and exit.",
                         )
-    args = parser.parse_args(args)
-    args.parser = parser
+    args=parser.parse_args(args)
+    args.parser=parser
     # If no argument is given, print help info:
     if not sys.argv[1:]:
         parser.print_help()
@@ -152,7 +161,7 @@ def main(args=None):
 
     :param list args: a list of arguments (sys.args[:1])
     """
-    args = parse_cli(args)
+    args=parse_cli(args)
     return 0
 
 if __name__ == "__main__":
