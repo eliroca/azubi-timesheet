@@ -11,19 +11,22 @@ import re # used for regular expressions
 import argparse # used to parse command line arguments
 import datetime # used to save date and time objects
 
-def check_date(date, message, attempts = 3):
+def check_date(date, non_interactive, message, attempts = 3):
     """Check that date respects format 'DD.MM.YYYY'.
 
-    :param date: The date supplied from the command line
-    :param message: Message to print when no date supplied
-    :attempts: Allowed number of attempts to specify a valid date
+    :param str date: The date supplied from the command line
+    :param bool non_interactive: Tells the function if asking for user input is ok
+    :param str message: Message to print when asking for date input
+    :param int attempts: Allowed number of attempts to specify a valid date
     :return: Validated date object: date(year, month, day)
     :rtype: datetime.date
     """
     # Example of match dict: {'day': '3', 'month': '10', 'year': '2019'}
     regex = r'(?P<day>[0-9]{1,2})([\.,-])(?P<month>[0-9]{1,2})([\.,-])(?P<year>[0-9]{4})'
+    if non_interactive:
+        attempts = 1
     while attempts:
-        if not date:
+        if not date and not non_interactive:
             date = input(message)
         match = re.match(regex, date)
         if match:
@@ -34,18 +37,18 @@ def check_date(date, message, attempts = 3):
             return date
         else:
             attempts -= 1
-            date = None
-            print("Given date isn't valid.")
+            date = ""
             print("Expected date of following format: 'DD.MM.YYYY'")
-    print("Exiting. You entered invalid input too often.")
+    print("Exiting. You entered invalid date or didn't enter any input.")
     sys.exit(1)
 
-def check_time_interval(time_interval, message, attempts = 3):
+def check_time_interval(time_interval, non_interactive, name = "", attempts = 3):
     """Check that time interval respects format 'HH:MM-HH:MM'.
 
-    :param time_interval: The time interval supplied from the command line
-    :param message: Message to print when no time interval supplied
-    :attempts: Allowed number of attempts to specify a valid time interval
+    :param str time_interval: The time interval supplied from the command line
+    :param bool non_interactive: Tells the function if asking for user input is ok
+    :param str name: Name of time interval, used when printing to stdout
+    :param int attempts: Allowed number of attempts to specify a valid time interval
     :return: Two validated time objects: time(hour, minute)
     :rtype: tuple(datetime.time, datetime.time)
     """
@@ -54,14 +57,15 @@ def check_time_interval(time_interval, message, attempts = 3):
     # Note: start_hour:start_minute take values from 00:00-23:59
     # whereas end_hour:end_minute    only    from    10:00-23:59
     # Can't decide if it's a bug or a feature...
-    regex = r'(?P<start_hour>[0-9]|0[0-9]|1[0-9]|2[0-3])(:)?' \
+    regex = r'(?P<start_hour>[0-9]|0[0-9]|1[0-9]|2[0-3])(:)' \
             '(?P<start_minute>[0-5][0-9])?([\-])' \
-            '(?P<end_hour>1[0-9]|2[0-3])(:)?' \
-            '(?P<end_minute>[0-5][0-9])?'
-
+            '(?P<end_hour>1[0-9]|2[0-3])(:)' \
+            '(?P<end_minute>[0-5][0-9])'
+    if non_interactive:
+        attempts = 1
     while attempts:
-        if not time_interval:
-            time_interval = input(message)
+        if not time_interval and not non_interactive:
+            time_interval = input("- Enter the BEGIN and END {}: ".format(name))
         match = re.match(regex, time_interval)
         if match:
             start_hour = int(match.group("start_hour"))
@@ -73,10 +77,9 @@ def check_time_interval(time_interval, message, attempts = 3):
             return start_time, end_time
         else:
             attempts -= 1
-            time_interval = None
-            print("Given time interval isn't valid.")
-            print("Expected time interval of following format: 'HH:MM-HH:MM'")
-    print("Exiting. You entered invalid input too often.")
+            time_interval = ""
+            print("Expected {} of following format: 'HH:MM-HH:MM'".format(name))
+    print("Exiting. You entered invalid {} or didn't enter any input.".format(name))
     sys.exit(1)
 
 def check_args(args):
@@ -87,15 +90,13 @@ def check_args(args):
     """
     # checking date
     date_message = "- Enter the DATE of record: "
-    args.date = check_date(args.date, date_message)
+    args.date = check_date(args.date, args.non_interactive, date_message)
     # checking work hours
-    work_hours_message = "- Enter the BEGIN and END of WORK DAY: "
-    args.work_hours = check_time_interval(args.work_hours, work_hours_message)
+    args.work_hours = check_time_interval(args.work_hours, args.non_interactive, "WORK HOURS")
     # checking break
-    break_time_message = "- Enter the BEGIN and END of BREAK: "
-    args.break_time = check_time_interval(args.break_time, break_time_message)
+    args.break_time = check_time_interval(args.break_time, args.non_interactive, "BREAK TIME")
     # checking comment
-    if not args.comment:
+    if not args.comment and not args.non_interactive:
         args.comment = input("- Enter the COMMENT of record, if needed: ")
 
 def parse_cli(args = None):
@@ -106,6 +107,11 @@ def parse_cli(args = None):
     :rtype: :class:`argparse.Namespace`
     """
     parser = argparse.ArgumentParser(description = __doc__)
+    parser.add_argument("-n", "--non-interactive",
+                        action='store_true',
+                        dest = "non_interactive",
+                        help = "Do not ask anything, use default answers automatically.",
+                        )
     parser.add_argument("-d", "--date",
                         dest = "date",
                         help = "date of record in format 'DD.MM.YYYY'",
