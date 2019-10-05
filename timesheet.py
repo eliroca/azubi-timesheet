@@ -7,21 +7,25 @@ class Timesheet(object):
     Saves records in a JSON file.
     """
 
-    def __init__(self, filename):
+    def __init__(self, args, filename):
+        """Constructor,  initializes the class attributes.
+
+        :param args: argparse.Namespace object
+        :param str filename: The name of the JSON file
+        """
         super(Timesheet, self).__init__()
+        self.args = args
         self.filename = filename
         self.records = self.load_json_file()
 
-    def add_record(self, args):
+    def add_record(self):
         """Add a new record in timesheet.
-
-        :param args: argparse.Namespace object
         """
-        record = self.create_record(args)
+        record = self.create_record()
         self.records.append(record)
         self.write_json_file(self.records)
 
-    def create_record(self, args):
+    def create_record(self):
         """Create a record as dictionary.
 
         :param args: argparse.Namespace object
@@ -29,12 +33,12 @@ class Timesheet(object):
         :rtype: dict
         """
         return {
-            "date": args.date.strftime("%d.%m.%Y"),
-            "start_day": args.work_hours[0].strftime("%H:%M"),
-            "end_day": args.work_hours[1].strftime("%H:%M"),
-            "start_break": args.break_time[0].strftime("%H:%M"),
-            "end_break": args.break_time[1].strftime("%H:%M"),
-            "comment": args.comment
+            "date": self.args.date.strftime("%d.%m.%Y"),
+            "start_day": self.args.work_hours[0].strftime("%H:%M"),
+            "end_day": self.args.work_hours[1].strftime("%H:%M"),
+            "start_break": self.args.break_time[0].strftime("%H:%M"),
+            "end_break": self.args.break_time[1].strftime("%H:%M"),
+            "comment": self.args.comment
         }
 
     def write_json_file(self, records):
