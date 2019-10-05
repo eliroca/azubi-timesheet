@@ -21,9 +21,33 @@ class Timesheet(object):
     def add_record(self):
         """Add a new record in timesheet.
         """
-        record = self.create_record()
-        self.records.append(record)
-        self.write_json_file(self.records)
+        if not self.record_exists(self.args.date):
+            record = self.create_record()
+            self.records.append(record)
+            self.write_json_file(self.records)
+            return True
+        return False
+
+    def delete_record(self):
+        date = self.args.date.strftime("%d.%m.%Y")
+        for record in self.records:
+            if date == record["date"]:
+                self.records.remove(record)
+                self.write_json_file(self.records)
+                return True
+        return False
+
+    def edit_record(self):
+        """
+        """
+        date = self.args.date.strftime("%d.%m.%Y")
+        for record in self.records:
+            if date == record["date"]:
+                if not record == self.create_record():
+                    self.delete_record()
+                    self.add_record()
+                return True
+        return False
 
     def create_record(self):
         """Create a record as dictionary.

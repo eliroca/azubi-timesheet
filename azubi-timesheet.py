@@ -13,6 +13,26 @@ import argparse # used to parse command line arguments
 import datetime # used to save date and time objects
 from timesheet import Timesheet
 
+def execute(args):
+    """Checks which subcommand was given and executes it.
+
+    :param args: The namespace containing the scripts arguments
+    :type args: :class:`argparse.Namespace`
+    """
+    timesheet = Timesheet(args, "json/timesheet.json")
+    if args.subcommand == "add":
+        if not timesheet.add_record():
+            print("Exiting. Record already exists.")
+            sys.exit(1)
+    elif args.subcommand == "edit":
+        if not timesheet.edit_record():
+            print("Exiting. Record with given date not found.")
+            sys.exit(1)
+    elif args.subcommand == "delete":
+        if not timesheet.delete_record():
+            print("Exiting. Record with given date not found.")
+            sys.exit(1)
+
 def check_date(date, non_interactive, message, attempts=3):
     """Check that date respects format 'DD.MM.YYYY'.
 
@@ -85,21 +105,21 @@ def check_time_interval(time_interval, non_interactive, name="", attempts=3):
     sys.exit(1)
 
 def check_args(args):
-    """Checks if no arguments were set when running the script and asks for them.
+    """Checks if no arguments were given when running the script and asks for them.
 
     :param args: The namespace containing the scripts arguments
     :type args: :class:`argparse.Namespace`
     """
     # checking date
-    date_message = "- Enter the DATE of record: "
-    args.date = check_date(args.date, args.non_interactive, date_message)
-    # checking work hours
-    args.work_hours = check_time_interval(args.work_hours, args.non_interactive, "WORK HOURS")
-    # checking break
-    args.break_time = check_time_interval(args.break_time, args.non_interactive, "BREAK TIME")
-    # checking comment
-    if not args.comment and not args.non_interactive:
-        args.comment=input("- Enter the COMMENT of record, if needed: ")
+    args.date = check_date(args.date, args.non_interactive, "- Enter the DATE of record: ")
+    if not args.subcommand == "delete":
+        # checking work hours
+        args.work_hours = check_time_interval(args.work_hours, args.non_interactive, "WORK HOURS")
+        # checking break
+        args.break_time = check_time_interval(args.break_time, args.non_interactive, "BREAK TIME")
+        # checking comment
+        if not args.comment and not args.non_interactive:
+            args.comment=input("- Enter the COMMENT of record, if needed: ")
 
 def parse_cli(args=None):
     """Parse CLI with :class:`argparse.ArgumentParser` and return parsed result.
@@ -116,6 +136,12 @@ def parse_cli(args=None):
                         version="%(prog)s v0.1",
                         help="Show program's version number and exit."
                         )
+    parser.add_argument(action='store',
+                        dest="subcommand",
+                        metavar="add | edit | delete",
+                        choices=["add", "edit", "delete"],
+                        nargs="?",
+                        help="Choose one of these subcommands.",
                         )
     parser.add_argument("-n", "--non-interactive",
                         action='store_true',
@@ -156,7 +182,6 @@ def parse_cli(args=None):
     if not sys.argv[1:]:
         parser.print_help()
         sys.exit(0)
-    check_args(args)
     return args
 
 def main(args=None):
@@ -165,6 +190,8 @@ def main(args=None):
     :param list args: a list of arguments (sys.argv[:1])
     """
     args = parse_cli(args)
+    check_args(args)
+    execute(args)
     return 0
 
 if __name__ == "__main__":
