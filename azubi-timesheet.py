@@ -109,11 +109,13 @@ def parse_cli(args=None):
     :rtype: :class:`argparse.Namespace`
     """
     parser=argparse.ArgumentParser(description=__doc__,
-                                     prog=sys.argv[0],
+                                     prog="azubi-timesheet",
                                      add_help=False)
     parser.add_argument('-v', '--version',
                         action='version',
-                        version="%(prog)s 0.1",
+                        version="%(prog)s v0.1",
+                        help="Show program's version number and exit."
+                        )
                         )
     parser.add_argument("-n", "--non-interactive",
                         action='store_true',
