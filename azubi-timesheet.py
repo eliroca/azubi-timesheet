@@ -3,7 +3,7 @@
 # Copyright (c) 2019 Elisei Roca
 
 """
-Keep track of your work hours. Add, edit, delete records.
+Keep track of your work hours. Add, delete, replace records.
 Export and print at the end of the month!
 """
 
@@ -24,8 +24,8 @@ def execute(args):
         if not timesheet.add_record():
             print("Exiting. Record already exists.")
             sys.exit(1)
-    elif args.subcommand == "edit":
-        if not timesheet.edit_record():
+    elif args.subcommand == "replace":
+        if not timesheet.replace_record():
             print("Exiting. Record with given date not found.")
             sys.exit(1)
     elif args.subcommand == "delete":
@@ -138,8 +138,8 @@ def parse_cli(args=None):
                         )
     parser.add_argument(action='store',
                         dest="subcommand",
-                        metavar="add | edit | delete",
-                        choices=["add", "edit", "delete"],
+                        metavar="add | delete | replace",
+                        choices=["add", "delete", "replace"],
                         nargs="?",
                         help="Choose one of these subcommands.",
                         )

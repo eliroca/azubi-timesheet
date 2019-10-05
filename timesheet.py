@@ -3,10 +3,8 @@ import json # used to read / write json
 
 class Timesheet(object):
     """Object for managing a timesheet.
-
     Saves records in a JSON file.
     """
-
     def __init__(self, args, filename):
         """Constructor,  initializes the class attributes.
 
@@ -29,6 +27,8 @@ class Timesheet(object):
         return False
 
     def delete_record(self):
+        """Delete a record from timesheet.
+        """
         date = self.args.date.strftime("%d.%m.%Y")
         for record in self.records:
             if date == record["date"]:
@@ -37,8 +37,8 @@ class Timesheet(object):
                 return True
         return False
 
-    def edit_record(self):
-        """
+    def replace_record(self):
+        """Replace a record in timesheet.
         """
         date = self.args.date.strftime("%d.%m.%Y")
         for record in self.records:
