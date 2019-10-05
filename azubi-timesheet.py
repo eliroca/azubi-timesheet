@@ -11,6 +11,7 @@ import sys
 import re # used for regular expressions
 import argparse # used to parse command line arguments
 import datetime # used to save date and time objects
+from timesheet import Timesheet
 
 def check_date(date, non_interactive, message, attempts=3):
     """Check that date respects format 'DD.MM.YYYY'.
