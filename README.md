@@ -1,6 +1,10 @@
 # SUSE Apprentices Timesheets made easy
 
-## Contributions are welcome
+## Contributions are welcome:
+   + [ ] Method to fill in records from json file to xlsx exported file  
+   + [ ] Method to create file names like `2019_10_eroca_timesheet.json` `2019_10_eroca_timesheet.xlsx` and implement where needed
+   + [ ] Method to load specific json files of the given date's month and year
+
 
 ## Structure
 
@@ -9,7 +13,7 @@
 + Exports to `xlsx`, therefore: `pip install --user xlsxwriter`
 
 ## How it looks like
-### 1. Help
+### Help
 ```
 ./azubi-timesheet.py --help
 usage: azubi-timesheet [-v] [-n] [-d DD.MM.YYYY] [-w HH:MM-HH:MM]
@@ -39,7 +43,7 @@ optional arguments:
   -h, --help            Show this help message and exit.
   ```
 
-### 2. Subcommands
+### Subcommands
 + `add` creates a new json string and appends it to the list
 ```
 ./azubi-timesheet.py add --date 07.10.2019 --work-hours 09:00-17:30 --break-time 12:00-12:30 --non-interactive
