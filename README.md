@@ -1,6 +1,7 @@
 # SUSE Apprentices Timesheets made easy
 
 ## Contributions are welcome:
+   + [ ] Adding "special" days like: vacation, school; only date and comment needed for that; 8h assumed for daily quota;
    + [ ] Method to fill in records from json file to xlsx exported file  
    + [ ] Method to create file names like `2019_10_eroca_timesheet.json` `2019_10_eroca_timesheet.xlsx` and implement where needed
    + [ ] Method to load specific json files of the given date's month and year
