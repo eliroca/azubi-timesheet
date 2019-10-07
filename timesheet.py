@@ -1,19 +1,29 @@
-import os # used to check if files exist
-import json # used to read / write json
+import os
+import json
+import xlsxwriter
 
 class Timesheet(object):
     """Object for managing a timesheet.
     Saves records in a JSON file.
     """
-    def __init__(self, args, filename):
+    def __init__(self, args, records_file, export_file):
         """Constructor,  initializes the class attributes.
 
         :param args: argparse.Namespace object
-        :param str filename: The name of the JSON file
+        :param str records_file: The name of the JSON file
+        :param str export_file: The name of the exported xlsx document
         """
         super(Timesheet, self).__init__()
         self.args = args
-        self.filename = filename
+        json_dir = "json/"
+        export_dir = "export/"
+        if not os.path.isdir(json_dir):
+            os.mkdir(json_dir)
+        if not os.path.isdir(export_dir):
+            os.mkdir(export_dir)
+        self.records_file = os.path.join(json_dir + records_file)
+        self.export_file = os.path.join(export_dir + export_file)
+
         self.records = self.load_json_file()
 
     def add_record(self):
@@ -70,7 +80,7 @@ class Timesheet(object):
 
         :param list records: list of records
         """
-        with open(self.filename, 'w', encoding='utf-8') as f:
+        with open(self.records_file, "w", encoding="utf-8") as f:
             json.dump(records, f, indent=2)
 
     def load_json_file(self):
@@ -79,8 +89,8 @@ class Timesheet(object):
 
         :return: list with records from file
         """
-        if os.path.isfile(self.filename) and os.path.getsize(self.filename):
-            with open(self.filename, "r", encoding='utf-8') as f:
+        if os.path.isfile(self.records_file) and os.path.getsize(self.records_file):
+            with open(self.records_file, "r", encoding="utf-8") as f:
                 return json.load(f)
         else:
             self.write_json_file([])
@@ -97,3 +107,56 @@ class Timesheet(object):
             if date == record["date"]:
                 return True
         return False
+
+    def export(self):
+        """Export timesheet as .xlsx file
+        """
+        workbook = xlsxwriter.Workbook(self.export_file)
+        worksheet = workbook.add_worksheet()
+
+        normal_format = workbook.add_format({"font_name": "Verdana", "align": "center", "valign": "vcenter"})
+        title_format = workbook.add_format({"font_size": 16, "bold": True})
+
+        #"bold": True, "border": True
+
+        worksheet.set_column("A:A", 2.5)
+        worksheet.set_column("L:L", 20)
+
+        worksheet.merge_range("B5:K5", "Stundenzettel", title_format)
+        worksheet.set_row(4, 25)
+
+        worksheet.write("C7", "Name:", normal_format)
+        worksheet.write("D7", "", normal_format)
+        worksheet.write("C8", "Monat:", normal_format)
+        worksheet.write("D8", "", normal_format)
+        worksheet.merge_range("H8:I8", "Stundenübertrag", normal_format)
+        worksheet.merge_range("J8:K8", "", normal_format)
+
+        worksheet.write("C10", "Datum", normal_format)
+        worksheet.write("D10", "Kommt", normal_format)
+        worksheet.write("E10", "Geht", normal_format)
+        worksheet.write("F10", "P-Beginn", normal_format)
+        worksheet.write("G10", "P-Ende", normal_format)
+        worksheet.write("H10", "Pause", normal_format)
+        worksheet.write("I10", "AZ", normal_format)
+        worksheet.merge_range("J10:K10", "GES-Stunden", normal_format)
+        worksheet.write("L10", "Kommentar", normal_format)
+
+
+        worksheet.merge_range("H35:I35", "Stundenübertrag", normal_format)
+        worksheet.merge_range("J35:K35", "", normal_format)
+
+        worksheet.write("C39", "Soll:")
+        worksheet.write("H39", "Gesamt:")
+
+
+        worksheet.write("C42", "Unterschrift Auszubildender")
+        worksheet.write("G42", "Unterschrift Betreuer")
+        worksheet.write("K42", "Unterschrift Ausbilder")
+
+        worksheet.write("C44", "____________________")
+        worksheet.write("G44", "____________________")
+        worksheet.write("K44", "____________________")
+
+        workbook.close()
+        return True

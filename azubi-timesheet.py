@@ -7,10 +7,11 @@ Keep track of your work hours. Add, delete, replace records.
 Export and print at the end of the month!
 """
 
+import os
+import re
 import sys
-import re # used for regular expressions
-import argparse # used to parse command line arguments
-import datetime # used to save date and time objects
+import argparse
+import datetime
 from timesheet import Timesheet
 
 def execute(args):
@@ -19,7 +20,7 @@ def execute(args):
     :param args: The namespace containing the scripts arguments
     :type args: :class:`argparse.Namespace`
     """
-    timesheet = Timesheet(args, "json/timesheet.json")
+    timesheet = Timesheet(args, "timesheet.json", "timesheet.xlsx")
     if args.subcommand == "add":
         if not timesheet.add_record():
             print("Exiting. Record already exists.")
@@ -31,6 +32,10 @@ def execute(args):
     elif args.subcommand == "delete":
         if not timesheet.delete_record():
             print("Exiting. Record with given date not found.")
+            sys.exit(1)
+    elif args.subcommand == "export":
+        if not timesheet.export():
+            print("Exiting. No idea why yet.")
             sys.exit(1)
 
 def check_date(date, non_interactive, message, attempts=3):
@@ -111,15 +116,16 @@ def check_args(args):
     :type args: :class:`argparse.Namespace`
     """
     # checking date
-    args.date = check_date(args.date, args.non_interactive, "- Enter the DATE of record: ")
-    if not args.subcommand == "delete":
-        # checking work hours
-        args.work_hours = check_time_interval(args.work_hours, args.non_interactive, "WORK HOURS")
-        # checking break
-        args.break_time = check_time_interval(args.break_time, args.non_interactive, "BREAK TIME")
-        # checking comment
-        if not args.comment and not args.non_interactive:
-            args.comment=input("- Enter the COMMENT of record, if needed: ")
+    if not args.subcommand == "export":
+        args.date = check_date(args.date, args.non_interactive, "- Enter the DATE of record: ")
+        if not args.subcommand == "delete":
+            # checking work hours
+            args.work_hours = check_time_interval(args.work_hours, args.non_interactive, "WORK HOURS")
+            # checking break
+            args.break_time = check_time_interval(args.break_time, args.non_interactive, "BREAK TIME")
+            # checking comment
+            if not args.comment and not args.non_interactive:
+                args.comment=input("- Enter the COMMENT of record, if needed: ")
 
 def parse_cli(args=None):
     """Parse CLI with :class:`argparse.ArgumentParser` and return parsed result.
@@ -131,20 +137,20 @@ def parse_cli(args=None):
     parser=argparse.ArgumentParser(description=__doc__,
                                      prog="azubi-timesheet",
                                      add_help=False)
-    parser.add_argument('-v', '--version',
-                        action='version',
+    parser.add_argument("-v", "--version",
+                        action="version",
                         version="%(prog)s v0.1",
                         help="Show program's version number and exit."
                         )
-    parser.add_argument(action='store',
+    parser.add_argument(action="store",
                         dest="subcommand",
-                        metavar="add | delete | replace",
-                        choices=["add", "delete", "replace"],
+                        metavar="add | delete | replace | export",
+                        choices=["add", "delete", "replace", "export"],
                         nargs="?",
                         help="Choose one of these subcommands.",
                         )
     parser.add_argument("-n", "--non-interactive",
-                        action='store_true',
+                        action="store_true",
                         dest="non_interactive",
                         help="Do not ask anything, use default answers automatically.",
                         )
