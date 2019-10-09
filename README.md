@@ -1,7 +1,7 @@
 # SUSE Apprentices Timesheets made easy
 
 ## Contributions are welcome:
-   + [ ] Adding "special" days like: vacation, school; only date and comment needed for that; 8h assumed for daily quota;
+   + [x] Adding "special" days like: vacation, school; only date and comment needed for that
    + [ ] Method to fill in records from json file to xlsx exported file  
    + [ ] Method to create file names like `2019_10_eroca_timesheet.json` `2019_10_eroca_timesheet.xlsx` and implement where needed
    + [ ] Method to load specific json files of the given date's month and year
@@ -17,7 +17,7 @@
 ### Help
 ```
 ./azubi-timesheet.py --help
-usage: azubi-timesheet [-v] [-n] [-d DD.MM.YYYY] [-w HH:MM-HH:MM]
+usage: azubi-timesheet [-v] [-n] [-s] [-d DD.MM.YYYY] [-w HH:MM-HH:MM]
                        [-b HH:MM-HH:MM] [-c COMMENT] [-h]
                        [add | delete | replace | export]
 
@@ -33,6 +33,7 @@ optional arguments:
   -n, --non-interactive
                         Do not ask anything, use default answers
                         automatically.
+  -s, --special-record  Special records only have a date and a comment.
   -d DD.MM.YYYY, --date DD.MM.YYYY
                         Date of the record.
   -w HH:MM-HH:MM, --work-hours HH:MM-HH:MM
@@ -48,6 +49,10 @@ optional arguments:
 + `add` creates a new json string and appends it to the list
 ```
 ./azubi-timesheet.py add --date 07.10.2019 --work-hours 09:00-17:30 --break-time 12:00-12:30 --non-interactive
+```
++ `add -s` adds special records like school, vacation, sick leave
+```
+./azubi-timesheet.py add --date 09.10.2019 --comment "Berufsschule" --special-record
 ```
 
 + `replace` removes old record with same date, creates and appends a new one with the given data

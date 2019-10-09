@@ -81,13 +81,10 @@ def check_time_interval(time_interval, non_interactive, name="", attempts=3):
     """
     # Example of match dict: {'start_hour': '09', 'start_minute': '00',
     #                         'end_hour': '17', 'end_minute': '30'}
-    # Note: start_hour:start_minute take values from 00:00-23:59
-    # whereas end_hour:end_minute    only    from    10:00-23:59
-    # Can't decide if it's a bug or a feature...
-    regex = r'(?P<start_hour>[0-9]|0[0-9]|1[0-9]|2[0-3])(:)' \
-            '(?P<start_minute>[0-5][0-9])?([\-])' \
-            '(?P<end_hour>1[0-9]|2[0-3])(:)' \
-            '(?P<end_minute>[0-5][0-9])'
+    regex = r"(?P<start_hour>[0-9]|0[0-9]|1[0-9]|2[0-3])(:)"\
+             "(?P<start_minute>[0-5][0-9])([\-])"\
+             "(?P<end_hour>[0-9]|0[0-9]|1[0-9]|2[0-3])(:)"\
+             "(?P<end_minute>[0-5][0-9])"
     if non_interactive:
         attempts = 1
     while attempts:
@@ -119,13 +116,17 @@ def check_args(args):
     if not args.subcommand == "export":
         args.date = check_date(args.date, args.non_interactive, "- Enter the DATE of record: ")
         if not args.subcommand == "delete":
-            # checking work hours
-            args.work_hours = check_time_interval(args.work_hours, args.non_interactive, "WORK HOURS")
-            # checking break
-            args.break_time = check_time_interval(args.break_time, args.non_interactive, "BREAK TIME")
             # checking comment
             if not args.comment and not args.non_interactive:
                 args.comment=input("- Enter the COMMENT of record, if needed: ")
+            if not args.special:
+                # checking work hours
+                args.work_hours = check_time_interval(args.work_hours, args.non_interactive, "WORK HOURS")
+                # checking break
+                args.break_time = check_time_interval(args.break_time, args.non_interactive, "BREAK TIME")
+            else:
+                args.work_hours = (datetime.time(0, 0), datetime.time(0, 0))
+                args.break_time = (datetime.time(0, 0), datetime.time(0, 0))
 
 def parse_cli(args=None):
     """Parse CLI with :class:`argparse.ArgumentParser` and return parsed result.
@@ -153,6 +154,11 @@ def parse_cli(args=None):
                         action="store_true",
                         dest="non_interactive",
                         help="Do not ask anything, use default answers automatically.",
+                        )
+    parser.add_argument("-s", "--special-record",
+                        action="store_true",
+                        dest="special",
+                        help="Special records only need a date and a comment.",
                         )
     parser.add_argument("-d", "--date",
                         dest="date",
