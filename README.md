@@ -1,17 +1,18 @@
 # SUSE Apprentices Timesheets made easy
 
 ## Contributions are welcome:
+   + [ ] Implement working hours carryover(Stundenübertrag)
    + [x] Adding "special" days like: vacation, school; only date and comment needed for that
-   + [ ] Method to fill in records from json file to xlsx exported file  
-   + [ ] Method to create file names like `2019_10_eroca_timesheet.json` `2019_10_eroca_timesheet.xlsx` and implement where needed
-   + [ ] Method to load specific json files of the given date's month and year
+   + [x] Method to fill in records from json file to xlsx exported file
+   + [x] Method to create file names like `timesheet_2019_10.json` `timesheet_2019_10.xlsx` and implement where needed
+   + [x] Method to load specific json files of the given date's month and year
 
 
 ## Structure
 
 + Data is saved internally as `json` strings
 
-+ Exports to `xlsx`, therefore: `pip install --user xlsxwriter`
++ Exports to `xlsx`, therefore: `pip install openpyxl`
 
 ## How it looks like
 ### Help
@@ -33,7 +34,7 @@ optional arguments:
   -n, --non-interactive
                         Do not ask anything, use default answers
                         automatically.
-  -s, --special-record  Special records only have a date and a comment.
+  -s, --special-record  Special records only need a date and a comment.
   -d DD.MM.YYYY, --date DD.MM.YYYY
                         Date of the record.
   -w HH:MM-HH:MM, --work-hours HH:MM-HH:MM
@@ -50,7 +51,7 @@ optional arguments:
 ```
 ./azubi-timesheet.py add --date 07.10.2019 --work-hours 09:00-17:30 --break-time 12:00-12:30 --non-interactive
 ```
-+ `add -s` adds special records like school, vacation, sick leave
++ `add -s` adds special records like school, vacation, sick leave, where `--work-hours` or `--break_time` are **not** necessary
 ```
 ./azubi-timesheet.py add --date 09.10.2019 --comment "Berufsschule" --special-record
 ```
@@ -65,7 +66,7 @@ optional arguments:
 ./azubi-timesheet.py delete --date 07.10.2019
 ```
 
-+ `export` creates an `xlsx` document
++ `export` creates an `xlsx` document from the given date's **month** and **year**, day is not relevant
 ```
-./azubi-timesheet.py export
+./azubi-timesheet.py export --date 01.12.2019
 ```
