@@ -1,30 +1,76 @@
 import os
+import sys
 import json
-import xlsxwriter
+import locale
+from datetime import datetime
+from datetime import timedelta
+from openpyxl import load_workbook
 
 class Timesheet(object):
     """Object for managing a timesheet.
     Saves records in a JSON file.
     """
-    def __init__(self, args, records_file, export_file):
-        """Constructor,  initializes the class attributes.
+    def __init__(self, args, config_file):
+        """Constructor,  initializes the instance attributes.
 
         :param args: argparse.Namespace object
-        :param str records_file: The name of the JSON file
-        :param str export_file: The name of the exported xlsx document
+        :param str config_file: Name of configuration file
         """
         super(Timesheet, self).__init__()
-        self.args = args
-        json_dir = "json/"
-        export_dir = "export/"
-        if not os.path.isdir(json_dir):
-            os.mkdir(json_dir)
-        if not os.path.isdir(export_dir):
-            os.mkdir(export_dir)
-        self.records_file = os.path.join(json_dir + records_file)
-        self.export_file = os.path.join(export_dir + export_file)
+        self.configure_attr(args, config_file)
 
-        self.records = self.load_json_file()
+    def configure_attr(self, args, config_file):
+        """Initializes the instance attributes.
+        """
+        self.args = args
+        self.config = self.load_json_file(config_file, None)
+        if self.config == None:
+            sys.exit("Configuration file '{}' not found. Exiting...".format(config_file))
+
+        exports_dir = self.config["exports_dir"]
+        records_dir = self.config["records_dir"]
+        templates_dir = self.config["templates_dir"]
+
+        self.date_str = self.args.date.strftime("%d.%m.%Y")
+        self.year = self.args.date.year
+        month = self.args.date.month
+        month_str = self.args.date.strftime("%m")
+
+        self.records_file = os.path.join(records_dir, "timesheet_{}_{}.json".format(self.year, month_str))
+        self.records = self.load_json_file(self.records_file, [])
+
+        self.export_file = os.path.join(exports_dir, "timesheet_{}_{}.xlsx".format(self.year, month_str))
+
+        total_days = (self.args.date.replace(month = month % 12 +1, day = 1)-timedelta(days=1)).day
+        start_month = self.args.date.replace(day = 1)
+        end_month = self.args.date.replace(day = total_days)
+        workdays = self.netto_workdays(start_month, end_month, weekend_days=(5,6))
+        self.template_file = os.path.join(templates_dir, "template_timesheet_{}_days.xlsx".format(workdays))
+
+    def netto_workdays(self, start_date, end_date, holidays=[], weekend_days=[5,6]):
+        """Calculates number of workdays between two given dates, subtracting weekends.
+
+        :param date start_date: Date from where to start counting
+        :param date end_date: Date where to stop counting
+        :param list holidays: List of holidays, date objects
+        :param list weekend_days: List of days included in weekend; 5=sat, 6=sun
+        :return: Integer number of workdays
+        """
+        delta_days = (end_date - start_date).days + 1
+        full_weeks, extra_days = divmod(delta_days, 7)
+        # num_workdays = how many days/week you work * total number of weeks
+        num_workdays = (full_weeks + 1) * (7 - len(weekend_days))
+        # subtract out any working days that fall in the 'shortened week'
+        for d in range(1, 8 - extra_days):
+            if (end_date + timedelta(d)).weekday() not in weekend_days:
+                 num_workdays -= 1
+        # skip holidays that fall on weekend_days
+        holidays =  [x for x in holidays if x.weekday() not in weekend_days]
+        # subtract out any holidays
+        for d in holidays:
+            if start_date <= d <= end_date:
+                num_workdays -= 1
+        return num_workdays
 
     def add_record(self):
         """Add a new record in timesheet.
@@ -32,27 +78,25 @@ class Timesheet(object):
         if not self.record_exists(self.args.date):
             record = self.create_record()
             self.records.append(record)
-            self.write_json_file(self.records)
+            self.write_json_file(self.records_file, self.records)
             return True
         return False
 
     def delete_record(self):
         """Delete a record from timesheet.
         """
-        date = self.args.date.strftime("%d.%m.%Y")
         for record in self.records:
-            if date == record["date"]:
+            if self.date_str == record["date"]:
                 self.records.remove(record)
-                self.write_json_file(self.records)
+                self.write_json_file(self.records_file, self.records)
                 return True
         return False
 
     def replace_record(self):
         """Replace a record in timesheet.
         """
-        date = self.args.date.strftime("%d.%m.%Y")
         for record in self.records:
-            if date == record["date"]:
+            if self.date_str == record["date"]:
                 if not record == self.create_record():
                     self.delete_record()
                     self.add_record()
@@ -67,34 +111,38 @@ class Timesheet(object):
         :rtype: dict
         """
         return {
-            "date": self.args.date.strftime("%d.%m.%Y"),
+            "date": self.date_str,
             "start_day": self.args.work_hours[0].strftime("%H:%M"),
             "end_day": self.args.work_hours[1].strftime("%H:%M"),
             "start_break": self.args.break_time[0].strftime("%H:%M"),
             "end_break": self.args.break_time[1].strftime("%H:%M"),
-            "comment": self.args.comment
+            "comment": self.args.comment,
+            "special": str(self.args.special)
         }
 
-    def write_json_file(self, records):
+    def write_json_file(self, file, content):
         """Write list of records to JSON file.
 
-        :param list records: list of records
+        :param str file: name of file to write
+        :param content: content to write in file
         """
-        with open(self.records_file, "w", encoding="utf-8") as f:
-            json.dump(records, f, indent=2)
+        with open(file, "w", encoding="utf-8") as f:
+            json.dump(content, f, indent=2)
 
-    def load_json_file(self):
-        """Load JSON file as list of records.
-        Creates a file with an empty list if file doesn't exist.
+    def load_json_file(self, file, default_content=None):
+        """Load JSON file, return content.
+        Creates a file with default_content if file doesn't exist.
 
+        :param str file: name of file to load
+        :param default_content: default content to write in file
         :return: list with records from file
         """
-        if os.path.isfile(self.records_file) and os.path.getsize(self.records_file):
-            with open(self.records_file, "r", encoding="utf-8") as f:
+        if os.path.isfile(file) and os.path.getsize(file):
+            with open(file, "r", encoding="utf-8") as f:
                 return json.load(f)
-        else:
-            self.write_json_file([])
-            return []
+        elif default_content != None:
+            self.write_json_file(file, default_content)
+        return default_content
 
     def record_exists(self, date):
         """Check if record exists already.
@@ -102,61 +150,47 @@ class Timesheet(object):
         :param date: datetime.date object
         return: a bool with the result
         """
-        date = date.strftime("%d.%m.%Y")
         for record in self.records:
-            if date == record["date"]:
+            if self.date_str == record["date"]:
                 return True
         return False
 
     def export(self):
         """Export timesheet as .xlsx file
         """
-        workbook = xlsxwriter.Workbook(self.export_file)
-        worksheet = workbook.add_worksheet()
-
-        normal_format = workbook.add_format({"font_name": "Verdana", "align": "center", "valign": "vcenter"})
-        title_format = workbook.add_format({"font_size": 16, "bold": True})
-
-        #"bold": True, "border": True
-
-        worksheet.set_column("A:A", 2.5)
-        worksheet.set_column("L:L", 20)
-
-        worksheet.merge_range("B5:K5", "Stundenzettel", title_format)
-        worksheet.set_row(4, 25)
-
-        worksheet.write("C7", "Name:", normal_format)
-        worksheet.write("D7", "", normal_format)
-        worksheet.write("C8", "Monat:", normal_format)
-        worksheet.write("D8", "", normal_format)
-        worksheet.merge_range("H8:I8", "Stundenübertrag", normal_format)
-        worksheet.merge_range("J8:K8", "", normal_format)
-
-        worksheet.write("C10", "Datum", normal_format)
-        worksheet.write("D10", "Kommt", normal_format)
-        worksheet.write("E10", "Geht", normal_format)
-        worksheet.write("F10", "P-Beginn", normal_format)
-        worksheet.write("G10", "P-Ende", normal_format)
-        worksheet.write("H10", "Pause", normal_format)
-        worksheet.write("I10", "AZ", normal_format)
-        worksheet.merge_range("J10:K10", "GES-Stunden", normal_format)
-        worksheet.write("L10", "Kommentar", normal_format)
-
-
-        worksheet.merge_range("H35:I35", "Stundenübertrag", normal_format)
-        worksheet.merge_range("J35:K35", "", normal_format)
-
-        worksheet.write("C39", "Soll:")
-        worksheet.write("H39", "Gesamt:")
-
-
-        worksheet.write("C42", "Unterschrift Auszubildender")
-        worksheet.write("G42", "Unterschrift Betreuer")
-        worksheet.write("K42", "Unterschrift Ausbilder")
-
-        worksheet.write("C44", "____________________")
-        worksheet.write("G44", "____________________")
-        worksheet.write("K44", "____________________")
-
-        workbook.close()
+        if len(self.records) == 0:
+            os.remove(self.records_file)
+            exit_message = "There are no records for {} {} to export. Exiting...".format(self.args.date.strftime("%B"), self.year)
+            sys.exit(exit_message)
+        # set locale to use weekdays, months full name in german
+        locale.setlocale(locale.LC_TIME, 'de_DE.UTF-8')
+        wb = load_workbook(self.template_file)
+        ws = wb.active
+        ws.cell(row=7, column=4).value = self.config["name"]
+        month_year_str = "{} {}".format(self.args.date.strftime("%B"), self.year)
+        ws.cell(row=8, column=4).value = month_year_str
+        row = 12
+        for record in self.records:
+            col = 2
+            date =  datetime.strptime(record["date"], "%d.%m.%Y")
+            ws.cell(row=row, column=col).value = date.strftime("%A")
+            col += 1
+            ws.cell(row=row, column=col).value = date
+            col += 1
+            if "special" in record.keys() and record["special"] == "true":
+                ws.cell(row=row, column=9).value = 8.00
+                col += 4
+            else:
+                ws.cell(row=row, column=col).value = datetime.strptime(record["start_day"], "%H:%M").time()
+                col += 1
+                ws.cell(row=row, column=col).value = datetime.strptime(record["end_day"], "%H:%M").time()
+                col += 1
+                ws.cell(row=row, column=col).value = datetime.strptime(record["start_break"], "%H:%M").time()
+                col += 1
+                ws.cell(row=row, column=col).value = datetime.strptime(record["end_break"], "%H:%M").time()
+            col += 4
+            ws.cell(row=row, column=col).value = record["comment"]
+            row += 1
+        wb.save(self.export_file)
+        os.system("libreoffice {}".format(self.export_file))
         return True

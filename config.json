@@ -1,0 +1,6 @@
+{
+  "name": "Elisei Roca",
+  "exports_dir": "data/exports",
+  "records_dir": "data/records",
+  "templates_dir": "data/templates"
+}

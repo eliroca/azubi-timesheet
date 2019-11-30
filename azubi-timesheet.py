@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 #
 # Copyright (c) 2019 Elisei Roca
-
+#
 """
 Keep track of your work hours. Add, delete, replace records.
 Export and print at the end of the month!
@@ -20,7 +20,7 @@ def execute(args):
     :param args: The namespace containing the scripts arguments
     :type args: :class:`argparse.Namespace`
     """
-    timesheet = Timesheet(args, "timesheet.json", "timesheet.xlsx")
+    timesheet = Timesheet(args, config_file="config.json")
     if args.subcommand == "add":
         if not timesheet.add_record():
             print("Exiting. Record already exists.")
@@ -113,20 +113,19 @@ def check_args(args):
     :type args: :class:`argparse.Namespace`
     """
     # checking date
-    if not args.subcommand == "export":
-        args.date = check_date(args.date, args.non_interactive, "- Enter the DATE of record: ")
-        if not args.subcommand == "delete":
-            # checking comment
-            if not args.comment and not args.non_interactive:
-                args.comment=input("- Enter the COMMENT of record, if needed: ")
-            if not args.special:
-                # checking work hours
-                args.work_hours = check_time_interval(args.work_hours, args.non_interactive, "WORK HOURS")
-                # checking break
-                args.break_time = check_time_interval(args.break_time, args.non_interactive, "BREAK TIME")
-            else:
-                args.work_hours = (datetime.time(0, 0), datetime.time(0, 0))
-                args.break_time = (datetime.time(0, 0), datetime.time(0, 0))
+    args.date = check_date(args.date, args.non_interactive, "- Enter the DATE of record: ")
+    if not args.subcommand in ["delete", "export"]:
+        # checking comment
+        if not args.comment and not args.non_interactive:
+            args.comment=input("- Enter the COMMENT of record, if needed: ")
+        if not args.special:
+            # checking work hours
+            args.work_hours = check_time_interval(args.work_hours, args.non_interactive, "WORK HOURS")
+            # checking break
+            args.break_time = check_time_interval(args.break_time, args.non_interactive, "BREAK TIME")
+        else:
+            args.work_hours = (datetime.time(0, 0), datetime.time(0, 0))
+            args.break_time = (datetime.time(0, 0), datetime.time(0, 0))
 
 def parse_cli(args=None):
     """Parse CLI with :class:`argparse.ArgumentParser` and return parsed result.
