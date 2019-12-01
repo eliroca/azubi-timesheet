@@ -23,9 +23,9 @@ class Timesheet(object):
         """Initializes the instance attributes.
         """
         self.args = args
-        self.config = self.load_json_file(config_file, None)
+        self.config = self.load_json_file(config_file)
         if self.config == None:
-            sys.exit("Configuration file '{}' not found. Exiting...".format(config_file))
+            sys.exit("Exiting. Configuration file '{}' not found.".format(config_file))
 
         exports_dir = self.config["exports_dir"]
         records_dir = self.config["records_dir"]
@@ -88,7 +88,10 @@ class Timesheet(object):
         for record in self.records:
             if self.date_str == record["date"]:
                 self.records.remove(record)
-                self.write_json_file(self.records_file, self.records)
+                if len(self.records) > 0:
+                    self.write_json_file(self.records_file, self.records)
+                else:
+                    os.remove(self.records_file)
                 return True
         return False
 
@@ -131,17 +134,14 @@ class Timesheet(object):
 
     def load_json_file(self, file, default_content=None):
         """Load JSON file, return content.
-        Creates a file with default_content if file doesn't exist.
 
         :param str file: name of file to load
-        :param default_content: default content to write in file
-        :return: list with records from file
+        :param default_content: default content to return as loaded content
+        :return: content from file
         """
         if os.path.isfile(file) and os.path.getsize(file):
             with open(file, "r", encoding="utf-8") as f:
                 return json.load(f)
-        elif default_content != None:
-            self.write_json_file(file, default_content)
         return default_content
 
     def record_exists(self, date):
@@ -159,8 +159,7 @@ class Timesheet(object):
         """Export timesheet as .xlsx file
         """
         if len(self.records) == 0:
-            os.remove(self.records_file)
-            exit_message = "There are no records for {} {} to export. Exiting...".format(self.args.date.strftime("%B"), self.year)
+            exit_message = "Exiting. There are no records for {} {} to export.".format(self.args.date.strftime("%B"), self.year)
             sys.exit(exit_message)
         # set locale to use weekdays, months full name in german
         locale.setlocale(locale.LC_TIME, 'de_DE.UTF-8')
