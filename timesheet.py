@@ -20,32 +20,19 @@ class Timesheet(object):
         self.configure_attr(args, config_file)
 
     def configure_attr(self, args, config_file):
-        """Initializes the instance attributes.
+        """Initializes instance attributes.
         """
         self.args = args
         self.config = self.load_json_file(config_file)
         if self.config == None:
             sys.exit("Exiting. Configuration file '{}' not found.".format(config_file))
 
-        exports_dir = self.config["exports_dir"]
-        records_dir = self.config["records_dir"]
-        templates_dir = self.config["templates_dir"]
-
         self.date_str = self.args.date.strftime("%d.%m.%Y")
+        self.month_str = self.args.date.strftime("%m")
         self.year = self.args.date.year
-        month = self.args.date.month
-        month_str = self.args.date.strftime("%m")
 
-        self.records_file = os.path.join(records_dir, "timesheet_{}_{}.json".format(self.year, month_str))
+        self.records_file = os.path.join(self.config["records_dir"], "timesheet_{}_{}.json".format(self.year, self.month_str))
         self.records = self.load_json_file(self.records_file, [])
-
-        self.export_file = os.path.join(exports_dir, "timesheet_{}_{}.xlsx".format(self.year, month_str))
-
-        total_days = (self.args.date.replace(month = month % 12 +1, day = 1)-timedelta(days=1)).day
-        start_month = self.args.date.replace(day = 1)
-        end_month = self.args.date.replace(day = total_days)
-        workdays = self.netto_workdays(start_month, end_month, weekend_days=(5,6))
-        self.template_file = os.path.join(templates_dir, "template_timesheet_{}_days.xlsx".format(workdays))
 
     def netto_workdays(self, start_date, end_date, holidays=[], weekend_days=[5,6]):
         """Calculates number of workdays between two given dates, subtracting weekends.
@@ -161,9 +148,18 @@ class Timesheet(object):
         if len(self.records) == 0:
             exit_message = "Exiting. There are no records for {} {} to export.".format(self.args.date.strftime("%B"), self.year)
             sys.exit(exit_message)
+
+        total_days = (self.args.date.replace(month = self.args.date.month % 12 +1, day = 1)-timedelta(days=1)).day
+        start_month = self.args.date.replace(day = 1)
+        end_month = self.args.date.replace(day = total_days)
+        workdays = self.netto_workdays(start_month, end_month, weekend_days=(5,6))
+        template_file = os.path.join(self.config["templates_dir"], "template_timesheet_{}_days.xlsx".format(workdays))
+
+        export_file = os.path.join(self.config["exports_dir"], "timesheet_{}_{}.xlsx".format(self.year, self.month_str))
+
         # set locale to use weekdays, months full name in german
         locale.setlocale(locale.LC_TIME, 'de_DE.UTF-8')
-        wb = load_workbook(self.template_file)
+        wb = load_workbook(template_file)
         ws = wb.active
         ws.cell(row=7, column=4).value = self.config["name"]
         month_year_str = "{} {}".format(self.args.date.strftime("%B"), self.year)
@@ -190,6 +186,5 @@ class Timesheet(object):
             col += 4
             ws.cell(row=row, column=col).value = record["comment"]
             row += 1
-        wb.save(self.export_file)
-        os.system("libreoffice {}".format(self.export_file))
+        wb.save(export_file)
         return True
