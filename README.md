@@ -20,13 +20,13 @@
 ./azubi-timesheet.py --help
 usage: azubi-timesheet [-v] [-n] [-s] [-d DD.MM.YYYY] [-w HH:MM-HH:MM]
                        [-b HH:MM-HH:MM] [-c COMMENT] [-h]
-                       [add | delete | replace | export]
+                       [add | delete | update | export]
 
-Keep track of your work hours. Add, delete, replace records. Export and print
+Keep track of your work hours. Add, delete, update records. Export and print
 at the end of the month!
 
 positional arguments:
-  add | delete | replace | export
+  add | delete | update | export
                         Choose one of these subcommands.
 
 optional arguments:
@@ -56,9 +56,9 @@ optional arguments:
 ./azubi-timesheet.py add --date 09.10.2019 --comment "Berufsschule" --special-record
 ```
 
-+ `replace` removes old record with same date, creates and appends a new one with the given data
++ `update` finds record, updates it with the given data
 ```
-./azubi-timesheet.py replace --date 07.10.2019 --work-hours 10:00-18:30 --break-time 13:00-13:30 --non-interactive
+./azubi-timesheet.py update --date 07.10.2019 --work-hours 10:00-18:30 --break-time 13:00-13:30 --non-interactive
 ```
 
 + `delete` removes record with given date

@@ -95,14 +95,14 @@ class Timesheet(object):
                 return True
         return False
 
-    def replace_record(self):
+    def update_record(self):
         """Replace a record in timesheet.
         """
+        new_record = self.create_record()
         for record in self.records:
-            if self.date_str == record["date"]:
-                if not record == self.create_record():
-                    self.delete_record()
-                    self.add_record()
+            if self.date_str == record["date"] and not record == new_record:
+                record.update(new_record)
+                self.write_json_file(self.records_file, self.records)
                 return True
         return False
 
