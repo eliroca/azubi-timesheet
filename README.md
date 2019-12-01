@@ -2,16 +2,15 @@
 
 ## Contributions are welcome:
    + [ ] Implement working hours carryover(Stundenübertrag)
+   + [ ] Possibility to add more days with one command for vacation, etc.
+   + [ ] `export` should accept date without day, like this `-d 10.2019`
    + [x] Adding "special" days like: vacation, school; only date and comment needed for that
    + [x] Method to fill in records from json file to xlsx exported file
    + [x] Method to create file names like `timesheet_2019_10.json` `timesheet_2019_10.xlsx` and implement where needed
    + [x] Method to load specific json files of the given date's month and year
 
-
 ## Structure
-
 + Data is saved internally as `json` strings
-
 + Exports to `xlsx`, therefore: `pip install openpyxl`
 
 ## How it looks like
@@ -55,17 +54,14 @@ optional arguments:
 ```
 ./azubi-timesheet.py add --date 09.10.2019 --comment "Berufsschule" --special-record
 ```
-
 + `update` finds record, updates it with the given data
 ```
 ./azubi-timesheet.py update --date 07.10.2019 --work-hours 10:00-18:30 --break-time 13:00-13:30 --non-interactive
 ```
-
 + `delete` removes record with given date
 ```
 ./azubi-timesheet.py delete --date 07.10.2019
 ```
-
 + `export` creates an `xlsx` document from the given date's **month** and **year**, day is not relevant
 ```
 ./azubi-timesheet.py export --date 01.12.2019
