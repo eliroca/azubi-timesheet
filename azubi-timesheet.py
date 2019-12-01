@@ -139,7 +139,7 @@ def parse_cli(args=None):
                                      add_help=False)
     parser.add_argument("-v", "--version",
                         action="version",
-                        version="%(prog)s v0.1",
+                        version="%(prog)s v0.9",
                         help="Show program's version number and exit."
                         )
     parser.add_argument(action="store",
