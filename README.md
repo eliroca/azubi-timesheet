@@ -11,7 +11,7 @@
 
 ## Structure
 + Data is saved internally as `json` strings
-+ Exports to `xlsx`, therefore: `pip install openpyxl`
++ Exports to `xlsx`, therefore: `pip install -r requirements.txt`
 
 ## How it looks like
 ### Help
