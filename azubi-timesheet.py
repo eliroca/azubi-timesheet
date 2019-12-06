@@ -14,27 +14,31 @@ import argparse
 import datetime
 from timesheet import Timesheet
 
+__author__ = "Elisei Roca"
+__version__ = "0.9"
+__prog__ = os.path.basename(sys.argv[0])
+
 def execute(args):
     """Checks which subcommand was given and executes it.
 
     :param args: The namespace containing the scripts arguments
     :type args: :class:`argparse.Namespace`
     """
-    timesheet = Timesheet(args, config_file="config.json")
+    timesheet = Timesheet(config_file="config.json")
     if args.subcommand == "add":
-        if not timesheet.add_record():
+        if not timesheet.add_record(args.date, args.work_hours, args.break_time, args.comment, args.special):
             print("Exiting. Record already exists.")
             sys.exit(1)
     elif args.subcommand == "update":
-        if not timesheet.update_record():
+        if not timesheet.update_record(args.date, args.work_hours, args.break_time, args.comment, args.special):
             print("Exiting. Record with given date not found.")
             sys.exit(1)
     elif args.subcommand == "delete":
-        if not timesheet.delete_record():
+        if not timesheet.delete_record(args.date):
             print("Exiting. Record with given date not found.")
             sys.exit(1)
     elif args.subcommand == "export":
-        if not timesheet.export():
+        if not timesheet.export(args.date):
             print("Exiting. No idea why yet.")
             sys.exit(1)
 
@@ -135,58 +139,81 @@ def parse_cli(args=None):
     :rtype: :class:`argparse.Namespace`
     """
     parser=argparse.ArgumentParser(description=__doc__,
-                                     prog="azubi-timesheet",
-                                     add_help=False)
-    parser.add_argument("-v", "--version",
-                        action="version",
-                        version="%(prog)s v0.9",
-                        help="Show program's version number and exit."
-                        )
-    parser.add_argument(action="store",
-                        dest="subcommand",
-                        metavar="add | delete | update | export",
-                        choices=["add", "delete", "update", "export"],
-                        nargs="?",
-                        help="Choose one of these subcommands.",
-                        )
-    parser.add_argument("-n", "--non-interactive",
-                        action="store_true",
-                        dest="non_interactive",
-                        help="Do not ask anything, use default answers automatically.",
-                        )
-    parser.add_argument("-s", "--special-record",
-                        action="store_true",
-                        dest="special",
-                        help="Special records only need a date and a comment.",
-                        )
-    parser.add_argument("-d", "--date",
-                        dest="date",
-                        metavar="DD.MM.YYYY",
-                        default="",
-                        help="Date of the record.",
-                        )
-    parser.add_argument("-w", "--work-hours",
-                        dest="work_hours",
-                        metavar="HH:MM-HH:MM",
-                        default="",
-                        help="Begin and end time of the work day.",
-                        )
-    parser.add_argument("-b", "--break-time",
-                        dest="break_time",
-                        metavar="HH:MM-HH:MM",
-                        default="",
-                        help="Begin and end time of the break.",
-                        )
-    parser.add_argument("-c", "--comment",
-                        dest="comment",
-                        default="",
-                        help="Comment of the record, if needed.",
-                        )
-    parser.add_argument("-h", "--help",
-                        action="help",
-                        default=argparse.SUPPRESS,
-                        help="Show this help message and exit.",
-                        )
+                                   prog=__prog__,
+                                   epilog="Type <SUBCOMMAND> --help for more info.",
+                                   add_help=False)
+    global_args = parser.add_argument_group('global arguments')
+    global_args.add_argument("-h", "--help",
+                             action="help",
+                             help=argparse.SUPPRESS)
+    global_args.add_argument("-V", "--version",
+                             action="version",
+                             version="%(prog)s {}".format(__version__),
+                             help="show program's version number and exit")
+    global_args.add_argument("-n", "--non-interactive",
+                             action="store_true",
+                             dest="non_interactive",
+                             help="do not ask anything, use default answers automatically")
+    # parser with minimal arguments
+    min_parser = argparse.ArgumentParser(add_help=False)
+    min_parser._optionals.title = "subcommand arguments"
+    min_parser.add_argument("-d", "--date",
+                            dest="date",
+                            metavar="DD.MM.YYYY",
+                            default="",
+                            help="date of the record")
+    min_parser.add_argument("-h", "--help",
+                            action="help",
+                            help=argparse.SUPPRESS)
+    # parser with extended arguments
+    ext_parser = argparse.ArgumentParser(add_help=False)
+    ext_parser._optionals.title = "subcommand arguments"
+    ext_parser.add_argument("-w", "--work-hours",
+                            dest="work_hours",
+                            metavar="HH:MM-HH:MM",
+                            default="",
+                            help="begin and end time of the work day")
+    ext_parser.add_argument("-b", "--break-time",
+                            dest="break_time",
+                            metavar="HH:MM-HH:MM",
+                            default="",
+                            help="begin and end time of the break")
+    ext_parser.add_argument("-c", "--comment",
+                            dest="comment",
+                            default="",
+                            help="comment of the record, if needed")
+    ext_parser.add_argument("-s", "--special-record",
+                            action="store_true",
+                            dest="special",
+                            help="special records only need a date and a comment")
+
+    subparsers = parser.add_subparsers(title="available subcommands",
+                                       dest="subcommand",
+                                       metavar="<SUBCOMMAND>")
+    # subparser for 'add' subcommand:
+    parser_add = subparsers.add_parser("add",
+                                       description=("Add a new record."),
+                                       help="add a new record",
+                                       add_help=False,
+                                       parents=[min_parser, ext_parser])
+    # subparser for 'update' subcommand:
+    parser_update = subparsers.add_parser("update",
+                                          description=("Update an existing record."),
+                                          help="update an existing record",
+                                          add_help=False,
+                                          parents=[min_parser, ext_parser])
+    # subparser for 'delete' subcommand:
+    parser_delete = subparsers.add_parser("delete",
+                                          description=("Delete a record."),
+                                          help="delete an existing record",
+                                          add_help=False,
+                                          parents=[min_parser])
+    # subparser for 'export' subcommand:
+    parser_export = subparsers.add_parser("export",
+                                          description=("Export records of a month as .xlxs file."),
+                                          help="export records as .xlsx file",
+                                          add_help=False,
+                                          parents=[min_parser])
     args = parser.parse_args(args)
     args.parser = parser
     # If no argument is given, print help info:
