@@ -8,7 +8,6 @@ Export and print at the end of the month!
 """
 
 import os
-import re
 import sys
 import argparse
 import datetime
@@ -52,25 +51,21 @@ def check_date(date, non_interactive, message, attempts=3):
     :return: Validated date object: date(year, month, day)
     :rtype: datetime.date
     """
-    # Example of match dict: {'day': '3', 'month': '10', 'year': '2019'}
-    regex = r'(?P<day>[0-9]{1,2})([\.,-])(?P<month>[0-9]{1,2})([\.,-])(?P<year>[0-9]{4})'
     if non_interactive:
         attempts = 1
     while attempts:
         if not date and not non_interactive:
             date = input(message)
-        match = re.match(regex, date)
-        if match:
-            year = int(match.group("year"))
-            month = int(match.group("month"))
-            day = int(match.group("day"))
-            date = datetime.date(year, month, day)
+        try:
+            date = datetime.datetime.strptime(date, "%d.%m.%Y")
             return date
-        else:
-            attempts -= 1
-            date = ""
-            print("Expected date of following format: 'DD.MM.YYYY'")
-    print("Exiting. You entered invalid date or didn't enter any input.")
+        except ValueError:
+            print("Expected date of following format: 'DD.MM.YYYY'",
+                  file=sys.stderr)
+        attempts -= 1
+        date = ""
+    print("Exiting. You entered invalid date or didn't enter any input.",
+          file=sys.stderr)
     sys.exit(1)
 
 def check_time_interval(time_interval, non_interactive, name="", attempts=3):
@@ -83,31 +78,23 @@ def check_time_interval(time_interval, non_interactive, name="", attempts=3):
     :return: Two validated time objects: time(hour, minute)
     :rtype: tuple(datetime.time, datetime.time)
     """
-    # Example of match dict: {'start_hour': '09', 'start_minute': '00',
-    #                         'end_hour': '17', 'end_minute': '30'}
-    regex = r"(?P<start_hour>[0-9]|0[0-9]|1[0-9]|2[0-3])(:)"\
-             "(?P<start_minute>[0-5][0-9])([\-])"\
-             "(?P<end_hour>[0-9]|0[0-9]|1[0-9]|2[0-3])(:)"\
-             "(?P<end_minute>[0-5][0-9])"
     if non_interactive:
         attempts = 1
     while attempts:
         if not time_interval and not non_interactive:
-            time_interval = input("- Enter the BEGIN and END {}: ".format(name))
-        match = re.match(regex, time_interval)
-        if match:
-            start_hour = int(match.group("start_hour"))
-            start_minute = int(match.group("start_minute"))
-            end_hour = int(match.group("end_hour"))
-            end_minute = int(match.group("end_minute"))
-            start_time = datetime.time(start_hour, start_minute)
-            end_time = datetime.time(end_hour, end_minute)
-            return start_time, end_time
-        else:
-            attempts -= 1
-            time_interval = ""
-            print("Expected {} of following format: 'HH:MM-HH:MM'".format(name))
-    print("Exiting. You entered invalid {} or didn't enter any input.".format(name))
+            time_interval = input("- Enter the BEGIN and END of {}: ".format(name))
+        try:
+            start, end = time_interval.split("-")
+            start = datetime.datetime.strptime(start, "%H:%M")
+            end = datetime.datetime.strptime(end, "%H:%M")
+            return start.time(), end.time()
+        except ValueError:
+            print("Expected {} of following format: 'HH:MM-HH:MM'".format(name),
+                  file=sys.stderr)
+        attempts -= 1
+        time_interval = ""
+    print("Exiting. You entered invalid {} or didn't enter any input.".format(name),
+          file=sys.stderr)
     sys.exit(1)
 
 def check_args(args):
