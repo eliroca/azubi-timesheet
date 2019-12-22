@@ -23,7 +23,7 @@ def execute(args):
     :param args: The namespace containing the scripts arguments
     :type args: :class:`argparse.Namespace`
     """
-    timesheet = Timesheet(config_file="config.json")
+    timesheet = Timesheet()
     if args.subcommand == "add":
         if not timesheet.add_record(args.date, args.work_hours, args.break_time, args.comment, args.special):
             print("Exiting. Record already exists.")
@@ -40,6 +40,11 @@ def execute(args):
         if not timesheet.export(args.date):
             print("Exiting. No idea why yet.")
             sys.exit(1)
+    elif args.list_config:
+        print(timesheet.list_config())
+    elif args.set_config:
+        key, value = args.set_config.split("=")
+        timesheet.set_config(key, value)
 
 def check_date(date, non_interactive, message, attempts=3):
     """Check that date respects format 'DD.MM.YYYY'.
@@ -103,20 +108,21 @@ def check_args(args):
     :param args: The namespace containing the scripts arguments
     :type args: :class:`argparse.Namespace`
     """
-    # checking date
-    args.date = check_date(args.date, args.non_interactive, "- Enter the DATE of record: ")
-    if not args.subcommand in ["delete", "export"]:
-        # checking comment
-        if not args.comment and not args.non_interactive:
-            args.comment=input("- Enter the COMMENT of record, if needed: ")
-        if not args.special:
-            # checking work hours
-            args.work_hours = check_time_interval(args.work_hours, args.non_interactive, "WORK HOURS")
-            # checking break
-            args.break_time = check_time_interval(args.break_time, args.non_interactive, "BREAK TIME")
-        else:
-            args.work_hours = (datetime.time(0, 0), datetime.time(0, 0))
-            args.break_time = (datetime.time(0, 0), datetime.time(0, 0))
+    if not args.subcommand == "config":
+        # checking date
+        args.date = check_date(args.date, args.non_interactive, "- Enter the DATE of record: ")
+        if not args.subcommand in ["delete", "export"]:
+            # checking comment
+            if not args.comment and not args.non_interactive:
+                args.comment=input("- Enter the COMMENT of record, if needed: ")
+            if not args.special:
+                # checking work hours
+                args.work_hours = check_time_interval(args.work_hours, args.non_interactive, "WORK HOURS")
+                # checking break
+                args.break_time = check_time_interval(args.break_time, args.non_interactive, "BREAK TIME")
+            else:
+                args.work_hours = (datetime.time(0, 0), datetime.time(0, 0))
+                args.break_time = (datetime.time(0, 0), datetime.time(0, 0))
 
 def parse_cli(args=None):
     """Parse CLI with :class:`argparse.ArgumentParser` and return parsed result.
@@ -141,20 +147,20 @@ def parse_cli(args=None):
                              action="store_true",
                              dest="non_interactive",
                              help="do not ask anything, use default answers automatically")
+    # parser with basic settings
+    base_parser = argparse.ArgumentParser(add_help=False)
+    base_parser.add_argument("-h", "--help",
+                            action="help",
+                            help=argparse.SUPPRESS)
     # parser with minimal arguments
-    min_parser = argparse.ArgumentParser(add_help=False)
-    min_parser._optionals.title = "subcommand arguments"
+    min_parser = argparse.ArgumentParser(add_help=False,parents=[base_parser])
     min_parser.add_argument("-d", "--date",
                             dest="date",
                             metavar="DD.MM.YYYY",
                             default="",
                             help="date of the record")
-    min_parser.add_argument("-h", "--help",
-                            action="help",
-                            help=argparse.SUPPRESS)
     # parser with extended arguments
-    ext_parser = argparse.ArgumentParser(add_help=False)
-    ext_parser._optionals.title = "subcommand arguments"
+    ext_parser = argparse.ArgumentParser(add_help=False,parents=[min_parser])
     ext_parser.add_argument("-w", "--work-hours",
                             dest="work_hours",
                             metavar="HH:MM-HH:MM",
@@ -182,13 +188,13 @@ def parse_cli(args=None):
                                        description=("Add a new record."),
                                        help="add a new record",
                                        add_help=False,
-                                       parents=[min_parser, ext_parser])
+                                       parents=[ext_parser])
     # subparser for 'update' subcommand:
     parser_update = subparsers.add_parser("update",
                                           description=("Update an existing record."),
                                           help="update an existing record",
                                           add_help=False,
-                                          parents=[min_parser, ext_parser])
+                                          parents=[ext_parser])
     # subparser for 'delete' subcommand:
     parser_delete = subparsers.add_parser("delete",
                                           description=("Delete a record."),
@@ -201,6 +207,22 @@ def parse_cli(args=None):
                                           help="export records as .xlsx file",
                                           add_help=False,
                                           parents=[min_parser])
+    # subparser for 'config' subcommand:
+    parser_config = subparsers.add_parser("config",
+                                          description=("Configure the app with key=value pairs"),
+                                          help="configure the app with key=value pairs",
+                                          add_help=False,
+                                          parents=[base_parser])
+    config_args = parser_config.add_mutually_exclusive_group()
+    config_args.add_argument("--set",
+                               dest="set_config",
+                               metavar="key=value",
+                               default="",
+                               help="enter a key=value pair configuration")
+    config_args.add_argument("--list",
+                             action="store_true",
+                             dest="list_config",
+                             help="see the app's configuration")
     args = parser.parse_args(args)
     args.parser = parser
     # If no argument is given, print help info:

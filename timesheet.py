@@ -9,14 +9,50 @@ from openpyxl import load_workbook
 class Timesheet(object):
     """Object for managing work hours timesheet.
     """
-    def __init__(self, config_file):
+    def __init__(self):
         """Constructor,  initializes 'config' instance attribute.
 
         :param str config_file: Name of configuration file
         """
-        self.config = self.load_json_file(config_file)
-        if self.config == None:
-            sys.exit("Exiting. Configuration file '{}' not found.".format(config_file))
+        self.config_file = os.path.basename(__file__).split(".")[0] + ".json"
+        program_path = os.path.dirname(os.path.realpath(__file__))
+        config = self.load_json_file(self.config_file)
+        if config == None:
+            sys.exit("Exiting. Configuration file '{}' not found.".format(self.config_file))
+        self.config = {}
+        if config["name"]:
+            self.config["name"] = config["name"]
+        else:
+            self.config["name"] = ""
+        # set records configuration
+        self.config["records"] = {}
+        self.config["records"]["records_name"] = "timesheet_{}_{}.json"
+        if config["records"] and config["records"]["records_dir"]:
+            self.config["records"]["records_dir"] = config["records"]["records_dir"]
+        else:
+            self.config["records"]["records_dir"] = os.path.join(program_path, "data/records")
+        # set exports configuration
+        self.config["exports"] = {}
+        self.config["exports"]["exports_name"] = "timesheet_{}_{}.xlsx"
+        if config["exports"] and config["exports"]["exports_dir"]:
+            self.config["exports"]["exports_dir"] = config["exports"]["exports_dir"]
+        else:
+            self.config["exports"]["exports_dir"] = os.path.join(program_path, "data/exports")
+        # set templates configuration
+        self.config["templates"] = {}
+        self.config["templates"]["templates_name"] = "template_timesheet_{}_days.xlsx"
+        self.config["templates"]["templates_dir"] = os.path.join(program_path, "data/templates")
+        if not os.path.isdir(self.config["records"]["records_dir"]):
+            os.makedirs(self.config["records"]["records_dir"])
+        if not os.path.isdir(self.config["exports"]["exports_dir"]):
+            os.makedirs(self.config["exports"]["exports_dir"])
+
+    def list_config(self):
+        return self.config
+
+    def set_config(self, key, value):
+        self.config[key] = value
+        self.write_json_file(self.config_file, self.config)
 
     def load_records(self, date):
         """Initializes 'records_file' and 'records' instance attributes.
@@ -184,6 +220,8 @@ class Timesheet(object):
         if len(self.records) == 0:
             exit_message = "Exiting. There are no records for {} {} to export.".format(date.strftime("%B"), date.year)
             sys.exit(exit_message)
+        if not self.config["name"]:
+            print("Warning. Your name is missing from the configuration.")
 
         total_days = (date.replace(month = date.month % 12 +1, day = 1)-timedelta(days=1)).day
         start_month = date.replace(day = 1)
