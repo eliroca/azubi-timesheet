@@ -2,6 +2,7 @@ import os
 import sys
 import json
 import locale
+import configparser
 from datetime import datetime
 from datetime import timedelta
 from openpyxl import load_workbook
@@ -14,45 +15,52 @@ class Timesheet(object):
 
         :param str config_file: Name of configuration file
         """
-        self.config_file = os.path.basename(__file__).split(".")[0] + ".json"
+        self.config_file = os.path.basename(__file__).split(".")[0] + ".ini"
         program_path = os.path.dirname(os.path.realpath(__file__))
-        config = self.load_json_file(self.config_file)
-        if config == None:
-            sys.exit("Exiting. Configuration file '{}' not found.".format(self.config_file))
-        self.config = {}
-        if config["name"]:
-            self.config["name"] = config["name"]
-        else:
-            self.config["name"] = ""
-        # set records configuration
-        self.config["records"] = {}
-        self.config["records"]["records_name"] = "timesheet_{}_{}.json"
-        if config["records"] and config["records"]["records_dir"]:
-            self.config["records"]["records_dir"] = config["records"]["records_dir"]
-        else:
-            self.config["records"]["records_dir"] = os.path.join(program_path, "data/records")
-        # set exports configuration
-        self.config["exports"] = {}
-        self.config["exports"]["exports_name"] = "timesheet_{}_{}.xlsx"
-        if config["exports"] and config["exports"]["exports_dir"]:
-            self.config["exports"]["exports_dir"] = config["exports"]["exports_dir"]
-        else:
-            self.config["exports"]["exports_dir"] = os.path.join(program_path, "data/exports")
-        # set templates configuration
-        self.config["templates"] = {}
-        self.config["templates"]["templates_name"] = "template_timesheet_{}_days.xlsx"
-        self.config["templates"]["templates_dir"] = os.path.join(program_path, "data/templates")
-        if not os.path.isdir(self.config["records"]["records_dir"]):
-            os.makedirs(self.config["records"]["records_dir"])
-        if not os.path.isdir(self.config["exports"]["exports_dir"]):
-            os.makedirs(self.config["exports"]["exports_dir"])
+        config = configparser.ConfigParser()
+        config.read(self.config_file)
+        self.config = configparser.ConfigParser()
+        # default configuration
+        self.config["DEFAULT"] = {}
+        self.config["DEFAULT"]["name"] = "YOUR NAME HERE"
+        self.config["DEFAULT"]["records_name"] = "timesheet_{}_{}.json"
+        self.config["DEFAULT"]["records_dir"] = os.path.join(program_path, "data/records")
+        self.config["DEFAULT"]["exports_name"] = "timesheet_{}_{}.xlsx"
+        self.config["DEFAULT"]["exports_dir"] = os.path.join(program_path, "data/exports")
+        self.config["DEFAULT"]["templates_name"] = "template_timesheet_{}_days.xlsx"
+        self.config["DEFAULT"]["templates_dir"] = os.path.join(program_path, "data/templates")
+        # user defined configuration
+        self.config["user_defined"] = {}
+        self.user_defined = ("name", "records_dir", "exports_dir")
+        if config.has_section("user_defined"):
+            for key in self.user_defined:
+                if config.has_option("user_defined", key) and not self.default_value(config["user_defined"][key]):
+                    self.config["user_defined"][key] = config["user_defined"][key]
+        if not os.path.isdir(self.config.get("user_defined", "records_dir")):
+            os.makedirs(self.config.get("user_defined", "records_dir"))
+        if not os.path.isdir(self.config.get("user_defined", "exports_dir")):
+            os.makedirs(self.config.get("user_defined", "exports_dir"))
 
     def list_config(self):
-        return self.config
+        for section in ("DEFAULT", "user_defined"):
+            print("[{}]".format(section))
+            for key, value in self.config[section].items():
+                if key in self.user_defined:
+                    if section == "DEFAULT" or not self.default_value(value):
+                        print("{} = {}".format(key, value))
+                    else:
+                        print("{} =".format(key))
 
     def set_config(self, key, value):
-        self.config[key] = value
-        self.write_json_file(self.config_file, self.config)
+        if key in self.user_defined:
+            self.config["user_defined"][key] = value
+            with open(self.config_file, 'w') as config_file:
+                self.config.write(config_file)
+            return True
+        return False
+
+    def default_value(self, value):
+        return value in self.config["DEFAULT"].values()
 
     def load_records(self, date):
         """Initializes 'records_file' and 'records' instance attributes.
@@ -61,8 +69,8 @@ class Timesheet(object):
             only year and month are relevant
         """
         self.records_file = os.path.join(
-            self.config["records"]["records_dir"],
-            self.config["records"]["records_name"].format(date.year, date.strftime("%m"))
+            self.config.get("user_defined", "records_dir"),
+            self.config.get("user_defined", "records_name").format(date.year, date.strftime("%m"))
         )
         self.records = self.load_json_file(self.records_file, [])
 
@@ -211,6 +219,9 @@ class Timesheet(object):
         column = wb["Logging"].cell(row=3, column=2).value
         return wb["Timesheet"].cell(row=row, column=column).value
 
+    def extract_date(self, record):
+        return datetime.strptime(record["date"], "%d.%m.%Y")
+
     def export(self, date):
         """Export timesheet as .xlsx file
 
@@ -220,24 +231,23 @@ class Timesheet(object):
         if len(self.records) == 0:
             exit_message = "Exiting. There are no records for {} {} to export.".format(date.strftime("%B"), date.year)
             sys.exit(exit_message)
-        if not self.config["name"]:
-            print("Warning. Your name is missing from the configuration.")
+        self.records.sort(key=self.extract_date)
 
         total_days = (date.replace(month = date.month % 12 +1, day = 1)-timedelta(days=1)).day
         start_month = date.replace(day = 1)
         end_month = date.replace(day = total_days)
         workdays = self.netto_workdays(start_month, end_month, weekend_days=(5,6))
-        template_file = os.path.join(self.config["templates"]["templates_dir"],
-            self.config["templates"]["templates_name"].format(workdays))
+        template_file = os.path.join(self.config.get("user_defined", "templates_dir"),
+            self.config.get("user_defined", "templates_name").format(workdays))
 
         export_file = os.path.join(
-            self.config["exports"]["exports_dir"],
-            self.config["exports"]["exports_name"].format(date.year, date.strftime("%m"))
+            self.config.get("user_defined", "exports_dir"),
+            self.config.get("user_defined", "exports_name").format(date.year, date.strftime("%m"))
         )
         prev_month = (start_month - timedelta(days=1)).strftime("%m")
         prev_export_file = os.path.join(
-            self.config["exports"]["exports_dir"],
-            self.config["exports"]["exports_name"].format(date.year, prev_month)
+            self.config.get("user_defined", "exports_dir"),
+            self.config.get("user_defined", "exports_name").format(date.year, prev_month)
         )
         carryover_hours = self.extract_carryover_hours(prev_export_file)
 
@@ -245,7 +255,7 @@ class Timesheet(object):
         locale.setlocale(locale.LC_TIME, 'de_DE.UTF-8')
         wb = load_workbook(template_file)
         ws = wb["Timesheet"]
-        ws.cell(row=7, column=4).value = self.config["name"]
+        ws.cell(row=7, column=4).value = self.config.get("user_defined", "name")
         month_year_str = "{} {}".format(date.strftime("%B"), date.year)
         ws.cell(row=8, column=4).value = month_year_str
         ws.cell(row=8, column=10).value = carryover_hours

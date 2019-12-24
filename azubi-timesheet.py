@@ -41,10 +41,12 @@ def execute(args):
             print("Exiting. No idea why yet.")
             sys.exit(1)
     elif args.list_config:
-        print(timesheet.list_config())
+        timesheet.list_config()
     elif args.set_config:
-        key, value = args.set_config.split("=")
-        timesheet.set_config(key, value)
+        key, value = (item.strip() for item in args.set_config.split("="))
+        if not timesheet.set_config(key, value):
+            print("Exiting. Given key '{}' cannot be configured.".format(key))
+            sys.exit(1)
 
 def check_date(date, non_interactive, message, attempts=3):
     """Check that date respects format 'DD.MM.YYYY'.
