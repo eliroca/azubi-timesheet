@@ -1,0 +1,2 @@
+include LICENSE
+include azubi_timesheet/data/templates/*.xlsx
