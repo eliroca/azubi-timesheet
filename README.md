@@ -1,6 +1,13 @@
 # SUSE Apprentices Timesheets made easy
 
-## Contributions are welcome:
+## Installation
++ If you just want to start right away:
+  `pip install azubi-timesheet`
++ Development mode:
+  1. `git clone https://github.com/eliroca/azubi-timesheet.git; cd azubi-timesheet`
+  2. `pip install -e .`
+
+## Contributions are welcome
    + [ ] Subcommand `export` should accept date without day, like this `-d 10.2019`
    + [ ] Possibility to add more days with one command for vacation, etc.
    + [ ] Raise exceptions in `timesheet.py` and catch them in main, instead of exiting the program
@@ -15,15 +22,11 @@
    + [x] Method to create file names like `timesheet_2019_10.json` `timesheet_2019_10.xlsx` and implement where needed
    + [x] Method to load specific json files of the given date's month and year
 
-## Structure
-+ Data is saved internally as `json` strings
-+ Exports to `xlsx`, therefore: `pip install -r requirements.txt`
-
 ## How it looks like
 ### Main help message
 ```
-./azubi-timesheet.py --help
-usage: azubi-timesheet.py [-V] [-n] <SUBCOMMAND> ...
+azubi-timesheet --help
+usage: azubi-timesheet [-V] [-n] <SUBCOMMAND> ...
 
 Keep track of your work hours. Add, delete, update records. Export and print
 at the end of the month!
@@ -39,18 +42,20 @@ available subcommands:
     update              update an existing record
     delete              delete an existing record
     export              export records as .xlsx file
+    config              configure the app with key=value pairs
 
 Type <SUBCOMMAND> --help for more info.
 ```
+
 ### Subcommand help message
 ```
-./azubi-timesheet.py add --help
-usage: azubi-timesheet.py add [-d DD.MM.YYYY] [-w HH:MM-HH:MM]
-                              [-b HH:MM-HH:MM] [-c COMMENT] [-s]
+azubi-timesheet add --help
+usage: azubi-timesheet add [-d DD.MM.YYYY] [-w HH:MM-HH:MM] [-b HH:MM-HH:MM]
+                           [-c COMMENT] [-s]
 
 Add a new record.
 
-subcommand arguments:
+optional arguments:
   -d DD.MM.YYYY, --date DD.MM.YYYY
                         date of the record
   -w HH:MM-HH:MM, --work-hours HH:MM-HH:MM
@@ -61,24 +66,40 @@ subcommand arguments:
                         comment of the record, if needed
   -s, --special-record  special records only need a date and a comment
 ```
+
 ### Subcommands
 + `add` creates a new json string and appends it to the list
 ```
-./azubi-timesheet.py add --date 07.10.2019 --work-hours 09:00-17:30 --break-time 12:00-12:30
+azubi-timesheet.py add --date 07.10.2019 --work-hours 09:00-17:30 --break-time 12:00-12:30
 ```
 + `add -s` adds special records like school, vacation, sick leave, where `--work-hours` or `--break_time` are **not** necessary
 ```
-./azubi-timesheet.py --non-interactive add --date 09.10.2019 --comment "Berufsschule" --special-record
+azubi-timesheet.py --non-interactive add --date 09.10.2019 --comment "Berufsschule" --special-record
 ```
 + `update` finds record, updates it with the given data
 ```
-./azubi-timesheet.py update --date 07.10.2019 --work-hours 10:00-18:30 --break-time 13:00-13:30
+azubi-timesheet.py update --date 07.10.2019 --work-hours 10:00-18:30 --break-time 13:00-13:30
 ```
 + `delete` removes record with given date
 ```
-./azubi-timesheet.py delete --date 07.10.2019
+azubi-timesheet.py delete --date 07.10.2019
 ```
-+ `export` creates an `xlsx` document from the given date's **month** and **year**, day is not relevant
++ `export` creates an `xlsx` document from the given date's **month** and **year**; day is not relevant but unfortunately still necessary
 ```
-./azubi-timesheet.py export --date 01.12.2019
+azubi-timesheet.py export --date 01.12.2019
+```
++ `config` lets you enter your name, choose where to save your records and exported documents
+```
+azubi-timesheet.py config --set "name=Elisei Roca"
+```
+```
+azubi-timesheet.py config --list
+[DEFAULT]
+name =
+records_dir = /home/eroca/.local/lib/python3.6/site-packages/azubi_timesheet-0.9.0-py3.6.egg/azubi_timesheet/data/records
+exports_dir = /home/eroca/.local/lib/python3.6/site-packages/azubi_timesheet-0.9.0-py3.6.egg/azubi_timesheet/data/exports
+[user_defined]
+name = Elisei Roca
+exports_dir = /home/eroca/Documents/SUSE_Timesheets
+records_dir =
 ```
