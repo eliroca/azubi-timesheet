@@ -11,7 +11,7 @@ import os
 import sys
 import argparse
 import datetime
-from timesheet import Timesheet
+from .timesheet import Timesheet
 
 __author__ = "Elisei Roca"
 __version__ = "0.9"

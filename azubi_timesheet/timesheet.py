@@ -15,14 +15,15 @@ class Timesheet(object):
 
         :param str config_file: Name of configuration file
         """
-        self.config_file = os.path.basename(__file__).split(".")[0] + ".ini"
         program_path = os.path.dirname(os.path.realpath(__file__))
+        config_file_name = os.path.basename(__file__).split(".")[0] + ".ini"
+        self.config_file = os.path.join(program_path, config_file_name)
         config = configparser.ConfigParser()
         config.read(self.config_file)
         self.config = configparser.ConfigParser()
         # default configuration
         self.config["DEFAULT"] = {}
-        self.config["DEFAULT"]["name"] = "YOUR NAME HERE"
+        self.config["DEFAULT"]["name"] = ""
         self.config["DEFAULT"]["records_name"] = "timesheet_{}_{}.json"
         self.config["DEFAULT"]["records_dir"] = os.path.join(program_path, "data/records")
         self.config["DEFAULT"]["exports_name"] = "timesheet_{}_{}.xlsx"
