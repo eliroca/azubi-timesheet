@@ -14,7 +14,7 @@ import datetime
 from .timesheet import Timesheet
 
 __author__ = "Elisei Roca"
-__version__ = "0.9"
+__version__ = "0.9.1"
 __prog__ = os.path.basename(sys.argv[0])
 
 def execute(args):

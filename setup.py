@@ -23,7 +23,7 @@ def requires(filename="requirements.txt"):
 
 setup(
     name="azubi-timesheet",
-    version="0.9.0",
+    version="0.9.1",
     author="Elisei Roca",
     author_email="elisei.roca@gmail.com",
     description="Keep track of your work hours. Add, delete, update records. " \
