@@ -279,7 +279,11 @@ class Timesheet(object):
                 ws.cell(row=row, column=col).value = datetime.strptime(record["start_break"], "%H:%M").time()
                 col += 1
                 ws.cell(row=row, column=col).value = datetime.strptime(record["end_break"], "%H:%M").time()
-            col += 4
+                col += 1
+            col += 3
+            if record_date.strftime("%A") == "Freitag":
+                ws.cell(row=row, column=col).value = "=SUM(I{}:I{})".format(row-4, row)
+            col += 1
             ws.cell(row=row, column=col).value = record["comment"]
             row += 1
         wb.save(export_file)
