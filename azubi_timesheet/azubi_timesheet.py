@@ -25,8 +25,9 @@ def execute(args):
     """
     timesheet = Timesheet()
     if args.subcommand == "add":
-        if not timesheet.add_record(args.date, args.work_hours, args.break_time, args.comment, args.special):
-            print("Exiting. Record already exists.")
+        existing_records = timesheet.add_record(args.date, args.work_hours, args.break_time, args.comment, args.special)
+        if existing_records:
+            print("Exiting. Following records already exist: {}.".format(existing_records))
             sys.exit(1)
     elif args.subcommand == "update":
         if not timesheet.update_record(args.date, args.work_hours, args.break_time, args.comment, args.special):
@@ -64,15 +65,24 @@ def check_date(date, non_interactive, message, attempts=3):
         if not date and not non_interactive:
             date = input(message)
         try:
-            date = datetime.datetime.strptime(date, "%d.%m.%Y")
-            return date
-        except ValueError:
-            print("Expected date of following format: 'DD.MM.YYYY'",
+            if "-" in date:
+                start_date, end_date = date.split("-")
+                start_date = datetime.datetime.strptime(start_date, "%d.%m.%Y")
+                end_date = datetime.datetime.strptime(end_date, "%d.%m.%Y")
+                if start_date.month == end_date.month:
+                    return start_date, end_date
+                else:
+                    print("Warning: date interval must be in the same month!")
+            else:
+                date = datetime.datetime.strptime(date, "%d.%m.%Y")
+                return date, date
+        except ValueError as error:
+            print("Expected date of following format: 'DD.MM.YYYY[-DD.MM.YYYY]',\n",
+                  error,
                   file=sys.stderr)
         attempts -= 1
         date = ""
-    print("Exiting. You entered invalid date or didn't enter any input.",
-          file=sys.stderr)
+    print("Exiting.", file=sys.stderr)
     sys.exit(1)
 
 def check_time_interval(time_interval, non_interactive, name="", attempts=3):
@@ -112,7 +122,7 @@ def check_args(args):
     """
     if not args.subcommand == "config":
         # checking date
-        args.date = check_date(args.date, args.non_interactive, "- Enter the DATE of record: ")
+        args.date = check_date(args.date, args.non_interactive, "- Enter a DATE (or date interval): ")
         if not args.subcommand in ["delete", "export"]:
             # checking comment
             if not args.comment and not args.non_interactive:

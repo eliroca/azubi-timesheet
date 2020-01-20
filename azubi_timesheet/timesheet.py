@@ -100,23 +100,32 @@ class Timesheet(object):
                 num_workdays -= 1
         return num_workdays
 
-    def add_record(self, date, work_hours, break_time, comment, special):
+    def add_record(self, date_interval, work_hours, break_time, comment, special):
         """Add a new record in timesheet.
 
-        :param datetime.date date: Date of record
+        :param tuple date_interval: Two datetime.date objects representing start and end of a date interval
         :param tuple work_hours: Two datetime.time objects representing start and end of workday
         :param tuple break_time: Two datetime.time objects representing start and end of break time
         :param str comment: Comment for the record
         :param bool special: Whether the record is special or not
         :rtype: bool
         """
-        self.load_records(date)
-        if not self.record_exists(date):
-            record = self.create_record(date, work_hours, break_time, comment, special)
-            self.records.append(record)
+        existing_records = []
+        self.load_records(date_interval[0])
+        for date in self.list_workdates(date_interval[0], date_interval[1]):
+            if self.record_exists(date):
+                existing_records.append(date.strftime("%d.%m.%Y"))
+            else:
+                record = self.create_record(date, work_hours, break_time, comment, special)
+                self.records.append(record)
+        if not existing_records:
             self.write_json_file(self.records_file, self.records)
-            return True
-        return False
+        return existing_records
+
+    def list_workdates(self, start_date, end_date, weekend_days=[5,6]):
+        delta_days = (end_date - start_date).days + 1
+        list = [start_date + timedelta(days=x) for x in range(0, delta_days)]
+        return [date for date in list if date.weekday() not in weekend_days]
 
     def delete_record(self, date):
         """Delete a record from timesheet.
